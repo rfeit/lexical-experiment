@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>My experiment</title>
+    <script src="https://unpkg.com/jspsych@7.3.1"></script>
+    <script src="https://unpkg.com/@jspsych/plugin-html-keyboard-response@1.1.2"></script>
+    <script src="https://unpkg.com/@jspsych/plugin-image-keyboard-response@1.1.2"></script>
+    <script src="https://unpkg.com/@jspsych/plugin-preload@1.1.2"></script>
+
+    <link
+      href="https://unpkg.com/jspsych@7.3.1/css/jspsych.css"
+      rel="stylesheet"
+      type="text/css"
+    />
+  </head>
+  <body></body>
+  <script>
+    // Initialize jsPsych
+    var jsPsych = initJsPsych({
+      on_finish: function () {
+        jsPsych.data.displayData();
+      },
+    });
+
+    // Timeline contains set of trials to run in the experiment
+    var timeline = [];
+
+    // Welcome message
+    var welcome = {
+      type: jsPsychHtmlKeyboardResponse,
+      stimulus: 'Welcome to the experiment. Press any key to begin.',
+    };
+
+    // Instructions
+    var instructions = {
+      type: jsPsychHtmlKeyboardResponse,
+      stimulus: `
+      <p>In this experiment, a word will appear in the center
+      of the screen.</p><p>If the word is a <strong>real</strong> word,
+      press the letter <strong>F</strong> on the keyboard as fast as you can.</p>
+      <p>If the word is a <strong>fake</strong> word, press the letter <strong>J</strong>
+      as fast as you can.</p>
+      <p>For example, if you see the word <strong>banana</strong>, press the <strong>F</strong> key.</p>
+      <p>If you see the word <strong>nabnaa</strong>, press the <strong>J</strong> key.</p>
+      <p>Press any key to begin.</p>
+    `,
+      post_trial_gap: 2000,
+    };
+
+    // Trial stimuli array for timeline variables
+    var test_stimuli = [
+      // Words
+      // frequencyRank is the rank of how frequently the word is used in text
+      { stimulus: '<p>news</p>', correct_response: 'f', frequencyRank: 574 },
+      { stimulus: '<p>candy</p>', correct_response: 'f', frequencyRank: 3469 },
+      { stimulus: '<p>cubes</p>', correct_response: 'f', frequencyRank: 5796 },
+      { stimulus: '<p>flood</p>', correct_response: 'f', frequencyRank: 3608 },
+      { stimulus: '<p>shirt</p>', correct_response: 'f', frequencyRank: 1781 },
+      { stimulus: '<p>song</p>', correct_response: 'f', frequencyRank: 852 },
+      { stimulus: '<p>water</p>', correct_response: 'f', frequencyRank: 226 },
+      { stimulus: '<p>morning</p>', correct_response: 'f', frequencyRank: 357 },
+      { stimulus: '<p>house</p>', correct_response: 'f', frequencyRank: 257 },
+      { stimulus: '<p>father</p>', correct_response: 'f', frequencyRank: 267 },
+
+      // Non-words
+      { stimulus: '<p>regap</p>', correct_response: 'j' },
+      { stimulus: '<p>tstra</p>', correct_response: 'j' },
+      { stimulus: '<p>oemlvu</p>', correct_response: 'j' },
+      { stimulus: '<p>slipl</p>', correct_response: 'j' },
+      { stimulus: '<p>ocklc</p>', correct_response: 'j' },
+      { stimulus: '<p>isdle</p>', correct_response: 'j' },
+      { stimulus: '<p>awlls</p>', correct_response: 'j' },
+      { stimulus: '<p>tlgih</p>', correct_response: 'j' },
+      { stimulus: '<p>ottapo</p>', correct_response: 'j' },
+      { stimulus: '<p>iwctsh</p>', correct_response: 'j' },
+    ];
+
+    // Fixation trial
+    var fixation = {
+      type: jsPsychHtmlKeyboardResponse,
+      stimulus: '<div style="font-size:60px;">+</div>',
+      choices: 'NO_KEYS',
+      trial_duration: function () {
+        return jsPsych.randomization.sampleWithoutReplacement(
+          [250, 500, 750, 1000, 1250, 1500, 1750, 2000],
+          1
+        )[0];
+      },
+      data: {
+        task: 'fixation',
+      },
+    };
+
+    // Test Trial using "stimulus" timelineVariable
+    var test = {
+      type: jsPsychHtmlKeyboardResponse,
+      stimulus: jsPsych.timelineVariable('stimulus'),
+      choices: ['f', 'j'],
+      data: {
+        task: 'response',
+        correct_response: jsPsych.timelineVariable('correct_response'),
+        frequencyRank: jsPsych.timelineVariable('frequencyRank'),
+      },
+      on_finish: function (data) {
+        data.correct = jsPsych.pluginAPI.compareKeys(
+          data.response,
+          data.correct_response
+        );
+        jsPsych.data.displayData();
+      },
+    };
+
+    // Define test procedure using the stimuli
+    var test_procedure = {
+      timeline: [fixation, test],
+      timeline_variables: test_stimuli,
+      randomize_order: true,
+    };
+
+    // Debrief block
+    var debrief_block = {
+      type: jsPsychHtmlKeyboardResponse,
+      stimulus: function () {
+        var trials = jsPsych.data.get().filter({ task: 'response' });
+        var correct_trials = trials.filter({ correct: true });
+        var accuracy = Math.round(
+          (correct_trials.count() / trials.count()) * 100
+        );
+        var rt = Math.round(correct_trials.select('rt').mean());
+
+        return `<p>You responded correctly on ${accuracy}% of the trials.</p>
+        <p>Your average response time was ${rt}ms.</p>
+        <p>Press any key to complete the experiment. Thank you!</p>`;
+      },
+    };
+
+    // Push the trials onto the timeline array
+    timeline.push(welcome);
+    timeline.push(instructions);
+    timeline.push(test_procedure);
+    timeline.push(debrief_block);
+
+    // Run the experiment
+    jsPsych.run(timeline);
+  </script>
+</html>
